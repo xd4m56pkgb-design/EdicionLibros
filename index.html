@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Puente editorial — TXT → Prompt → Novela revisada</title>
+<style>
+:root{
+  --bg:#efe7da; --paper:#fffaf1; --paper2:#f7ecdc; --ink:#2a2119; --muted:#706357;
+  --line:#d7c1a8; --accent:#6f4b33; --accent2:#9b6a44; --ok:#2f6d52; --warn:#a66a18;
+  --bad:#9b2f25; --blue:#365f86; --dark:#211811;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:linear-gradient(180deg,var(--bg),#dfcab2);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+header{
+  padding:18px 22px;
+  background:rgba(255,250,241,.96);
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:5;
+  backdrop-filter:blur(8px);
+}
+h1{margin:0;font-size:23px}
+h2{margin-top:0}
+.sub{font-size:14px;color:var(--muted);margin-top:4px}
+.wrap{
+  max-width:1560px;
+  margin:0 auto;
+  padding:16px;
+  display:grid;
+  grid-template-columns:330px 1fr;
+  gap:16px;
+}
+aside,main{
+  background:rgba(255,250,241,.96);
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(65,40,20,.15);
+}
+aside{
+  padding:14px;
+  height:calc(100vh - 104px);
+  overflow:auto;
+  position:sticky;
+  top:88px;
+}
+main{min-height:calc(100vh - 104px);overflow:hidden}
+.tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:13px;
+  background:var(--paper2);
+  border-bottom:1px solid var(--line);
+}
+button,.filelabel{
+  border:0;
+  border-radius:12px;
+  padding:10px 13px;
+  background:var(--accent);
+  color:white;
+  font-weight:800;
+  cursor:pointer;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+button:hover,.filelabel:hover{opacity:.92}
+button.active{background:#261c14}
+button.light{background:#eadbc8;color:#34261c;border:1px solid var(--line)}
+button.ok{background:var(--ok)}
+button.warn{background:var(--warn)}
+button.bad{background:var(--bad)}
+button.blue{background:var(--blue)}
+button.small{font-size:12px;padding:7px 9px;border-radius:9px}
+.content{padding:16px}
+.sec{display:none}
+.sec.active{display:block}
+.card{
+  background:#fffdf8;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px;
+  margin-bottom:14px;
+}
+label{font-weight:900;display:block;margin:12px 0 6px}
+textarea,input,select{
+  width:100%;
+  border:1px solid var(--line);
+  background:#fffdf8;
+  border-radius:12px;
+  padding:10px 11px;
+  font:inherit;
+  color:var(--ink);
+}
+textarea{resize:vertical;line-height:1.55;min-height:105px}
+.big{min-height:380px}
+.mid{min-height:210px}
+.small{min-height:90px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{
+  background:#fffdf8;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+}
+.stat b{display:block;font-size:24px;line-height:1}
+.stat span{font-size:12px;color:var(--muted);font-weight:800}
+.chapter{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:#fffdf8;
+  margin-bottom:8px;
+  cursor:pointer;
+}
+.chapter.active{border-color:var(--accent);outline:3px solid rgba(111,75,51,.22)}
+.ct{font-weight:900;font-size:14px}
+.cm{font-size:12px;color:var(--muted);margin-top:3px}
+.badge{
+  display:inline-flex;
+  border-radius:999px;
+  background:#eadbc8;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:900;
+  margin-top:5px;
+}
+.badge.revisado{background:#dce7f7;color:#274c7a}
+.badge.podado{background:#f7e2bb;color:#854d10}
+.badge.listo{background:#d9efdf;color:#1f5c3f}
+.badge.pendiente{background:#eadbc8;color:#4d3928}
+pre{
+  white-space:pre-wrap;
+  background:var(--dark);
+  color:#fff2e5;
+  padding:15px;
+  border-radius:16px;
+  line-height:1.55;
+  max-height:650px;
+  overflow:auto;
+  font-size:14px;
+}
+.hint{color:var(--muted);font-size:13px;line-height:1.45}
+.oktext{color:var(--ok);font-weight:900}
+.warntext{color:var(--warn);font-weight:900}
+.badtext{color:var(--bad);font-weight:900}
+table{width:100%;border-collapse:collapse;background:#fffdf8;border-radius:14px;overflow:hidden;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+th{background:#eadbc8}
+tr:last-child td{border-bottom:0}
+input[type=file]{display:none}
+.danger{border-color:#c99991;background:#fff4f1}
+details{
+  background:#fffdf8;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px;
+  margin-bottom:12px;
+}
+summary{cursor:pointer;font-weight:900}
+.bookbox{
+  background:#fffdf8;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:30px;
+  max-height:700px;
+  overflow:auto;
+  font-family:Georgia,serif;
+  line-height:1.75;
+  white-space:pre-wrap;
+}
+.coverPreviewImg{
+  max-width:180px;
+  max-height:260px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+  background:white;
+}
+@media(max-width:950px){
+  .wrap{grid-template-columns:1fr}
+  aside{position:relative;top:0;height:auto}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  header{position:relative}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Puente editorial — TXT → Prompt → Novela revisada</h1>
+  <div class="sub">Carga tu TXT, genera prompts por capítulo/bloque, guarda análisis o redacciones y exporta TXT, HTML, JSON y EPUB con portada.</div>
+</header>
+
+<div class="wrap">
+<aside>
+  <div class="row">
+    <label class="filelabel">Cargar TXT<input type="file" accept=".txt,text/plain" onchange="importTXT(event)"></label>
+    <button class="light small" onclick="saveAll()">Guardar</button>
+  </div>
+
+  <div class="card">
+    <b>Archivo JSON de trabajo</b>
+    <p class="hint">Guarda una copia JSON para poder recuperar todo: capítulos, análisis, fichas, revisiones y portada.</p>
+    <div class="row">
+      <button class="blue small" onclick="chooseSaveFile()">Elegir JSON</button>
+      <button class="light small" onclick="exportJSON()">Descargar JSON</button>
+    </div>
+    <div id="saveStatus" class="hint">Sin archivo JSON elegido.</div>
+  </div>
+
+  <label>Ir a capítulo</label>
+  <select id="chapterDropdown" onchange="selectChapter(this.value);tab('capitulo')"></select>
+
+  <label>Buscar capítulo</label>
+  <input id="search" placeholder="Número o título..." oninput="renderChapters()">
+
+  <div id="sideStats" class="card"></div>
+
+  <details open>
+    <summary>Ver índice completo</summary>
+    <div id="chapterList" style="margin-top:10px"></div>
+  </details>
+
+  <div class="card">
+    <b>Flujo correcto</b>
+    <p class="hint">
+      1) Carga el TXT.<br>
+      2) Divide por capítulos.<br>
+      3) Genera análisis y guárdalo.<br>
+      4) Genera prompt de poda.<br>
+      5) Pega la nueva redacción en “Revisión”.<br>
+      6) Exporta TXT, HTML o EPUB.
+    </p>
+  </div>
+</aside>
+
+<main>
+<div class="tabs">
+  <button id="tab-cargar" class="active" onclick="tab('cargar')">1. Cargar</button>
+  <button id="tab-capitulo" onclick="tab('capitulo')">2. Capítulo</button>
+  <button id="tab-prompt" onclick="tab('prompt')">3. Prompt</button>
+  <button id="tab-revision" onclick="tab('revision')">4. Revisión</button>
+  <button id="tab-libro" onclick="tab('libro');renderBookView()">Ver novela</button>
+  <button id="tab-diagnostico" onclick="tab('diagnostico')">Diagnóstico</button>
+  <button id="tab-exportar" onclick="tab('exportar')">Exportar</button>
+</div>
+
+<div class="content">
+
+<section id="cargar" class="sec active">
+  <div class="grid4" id="stats"></div>
+
+  <div class="card">
+    <h2>Cargar novela completa en TXT</h2>
+    <p class="hint">Detecta encabezados tipo “Capítulo 1. El silencio”, “CAPÍTULO 1. EL SILENCIO” o “Capítulo 1”.</p>
+    <textarea id="fullText" class="big" placeholder="Aquí irá la novela completa..."></textarea>
+    <div class="row">
+      <label class="filelabel">Cargar TXT<input type="file" accept=".txt,text/plain" onchange="importTXT(event)"></label>
+      <button class="ok" onclick="splitChapters()">Dividir por capítulos</button>
+      <button class="blue" onclick="pasteClipboard()">Pegar portapapeles</button>
+      <button class="light" onclick="clearAllText()">Limpiar solo esta ventana</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Configuración editorial del prompt</h2>
+    <label>Título</label>
+    <input id="projectTitle" value="Los que no tenían voz" oninput="saveLocalOnly()">
+
+    <label>Autor/a</label>
+    <input id="projectAuthor" value="Miguel" oninput="saveLocalOnly()">
+
+    <label>Contexto editorial fijo</label>
+    <textarea id="projectContext" class="mid" oninput="saveLocalOnly()">Los que no tenían voz es una novela juvenil, social y emocional sobre Naim y Karim, dos hermanos mellizos de 14 años que huyen de Gaza y llegan a Cáceres. Allí descubren que la guerra no termina al cruzar una frontera: cambia de forma y se convierte en silencio, idioma, desarraigo, miradas, xenofobia, miedo, integración difícil y necesidad de pertenecer.
+
+La novela cuenta cómo reconstruyen una voz propia a través del idioma, el cuaderno, el rap, el trap melódico y la poesía.
+
+Naim es observador, racional, metódico y protector. Ordena el caos.
+Karim es impulsivo, emocional, cálido y musical. Siente antes de pensar.
+Juntos forman una voz común.
+
+El tono debe ser duro pero no derrotista, emocional pero no cursi, juvenil pero literario, íntimo, crudo y humano.
+
+La crítica social debe entrar en escenas, no en discursos. La xenofobia no debe aparecer solo como maldad individual, sino como miedo social fabricado.</textarea>
+
+    <label>Lista de repeticiones a vigilar</label>
+    <textarea id="watchList" class="small" oninput="saveLocalOnly()">silencio, voz, mirada, muro, rabia, dentro/fuera, seguir, respirar, piedra, ciudad intacta, normalidad, todo seguía, como si, no era, no del todo, no dijo nada, Naim apretó la mandíbula, Karim soltó aire por la nariz, Karim se tensó, Naim lo frenó, Dani sonrió, vuelta al centro, cuaderno, palabra nueva al final, pan, mesa</textarea>
+  </div>
+
+  <div class="card">
+    <h2>Portada para EPUB</h2>
+    <p class="hint">
+      Carga una imagen JPG, PNG o WEBP. Se guardará en el JSON y se incrustará como portada real al exportar EPUB.
+    </p>
+
+    <div class="row">
+      <label class="filelabel">
+        Cargar portada
+        <input type="file" accept="image/jpeg,image/png,image/webp" onchange="importCoverImage(event)">
+      </label>
+      <button class="light" onclick="clearCoverImage()">Quitar portada</button>
+    </div>
+
+    <div id="coverPreviewBox" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="capitulo" class="sec">
+  <div class="card">
+    <h2 id="chapterHeading">Sin capítulo seleccionado</h2>
+
+    <div class="grid3">
+      <div>
+        <label>Número</label>
+        <input id="cNumber" type="number" oninput="updateCurrent()">
+      </div>
+      <div>
+        <label>Título</label>
+        <input id="cTitle" oninput="updateCurrent()">
+      </div>
+      <div>
+        <label>Estado</label>
+        <select id="cStatus" onchange="updateCurrent()">
+          <option value="pendiente">pendiente</option>
+          <option value="revisado">revisado</option>
+          <option value="podado">podado</option>
+          <option value="listo">listo</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Función / resumen del capítulo</label>
+    <textarea id="cSummary" class="small" oninput="updateCurrent()" placeholder="Pega aquí la ficha de continuidad del capítulo."></textarea>
+
+    <label>Texto original del capítulo</label>
+    <textarea id="cOriginal" class="big" oninput="updateCurrent()"></textarea>
+
+    <div class="row">
+      <button class="ok" onclick="saveAll()">Guardar</button>
+      <button class="blue" onclick="generateChapterPrompt();tab('prompt')">Generar análisis de este capítulo</button>
+      <button class="warn" onclick="goNext()">Siguiente capítulo</button>
+    </div>
+  </div>
+</section>
+
+<section id="prompt" class="sec">
+  <div class="card">
+    <h2>Generar prompt para pasar a ChatGPT</h2>
+
+    <div class="grid3">
+      <div>
+        <label>Tipo de trabajo</label>
+        <select id="promptMode">
+          <option value="analisis">Solo análisis editorial</option>
+          <option value="poda">Poda y reescritura del capítulo</option>
+          <option value="bloque">Análisis de bloque</option>
+          <option value="global">Informe global de novela</option>
+        </select>
+      </div>
+      <div>
+        <label>Desde capítulo</label>
+        <input id="fromChapter" type="number" value="1">
+      </div>
+      <div>
+        <label>Hasta capítulo</label>
+        <input id="toChapter" type="number" value="5">
+      </div>
+    </div>
+
+    <label>Instrucción adicional</label>
+    <textarea id="extraInstruction" class="small" placeholder="Ejemplo: poda moderada del 18%-25%, no cambies el fondo, conserva la voz de Naim y Karim."></textarea>
+
+    <div class="row">
+      <button class="light" onclick="clearExtraInstruction()">Limpiar instrucción adicional</button>
+      <button class="ok" onclick="generatePrompt()">Generar prompt</button>
+      <button class="blue" onclick="copyPrompt()">Copiar prompt</button>
+      <button class="light" onclick="downloadPrompt()">Descargar prompt TXT</button>
+    </div>
+
+    <pre id="promptOutput"></pre>
+  </div>
+</section>
+
+<section id="revision" class="sec">
+  <div class="card">
+    <h2>Guardar lo que devuelva ChatGPT</h2>
+    <p class="hint">Si guardas un análisis editorial, luego aparecerá automáticamente en el prompt de poda de ese capítulo.</p>
+
+    <div class="grid3">
+      <div>
+        <label>Capítulo destino</label>
+        <select id="revisionChapterSelect" onchange="selectChapter(this.value)"></select>
+      </div>
+      <div>
+        <label>Tipo de contenido</label>
+        <select id="revisionType">
+          <option value="revisedText">Nueva redacción del capítulo</option>
+          <option value="analysis">Análisis editorial</option>
+          <option value="continuity">Ficha de continuidad</option>
+        </select>
+      </div>
+      <div>
+        <label>Marcar estado</label>
+        <select id="revisionStatus">
+          <option value="revisado">revisado</option>
+          <option value="podado">podado</option>
+          <option value="listo">listo</option>
+          <option value="pendiente">pendiente</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Pegar aquí respuesta / texto revisado</label>
+    <textarea id="revisionInput" class="big"></textarea>
+
+    <div class="row">
+      <button class="ok" onclick="saveRevision()">Guardar en capítulo</button>
+      <button class="light" onclick="clearRevisionBox()">Limpiar ventana</button>
+      <button class="light" onclick="loadCurrentRevised()">Ver texto revisado guardado</button>
+      <button class="light" onclick="loadCurrentAnalysis()">Ver análisis guardado</button>
+      <button class="blue" onclick="copyRevisedNovel()">Copiar novela revisada</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Texto guardado del capítulo actual</h2>
+    <textarea id="currentRevisedView" class="mid" readonly></textarea>
+  </div>
+</section>
+
+<section id="libro" class="sec">
+  <div class="card">
+    <h2>Novela revisada completa</h2>
+    <div class="row">
+      <button class="ok" onclick="renderBookView()">Actualizar vista</button>
+      <button class="blue" onclick="copyRevisedNovel()">Copiar novela revisada</button>
+      <button class="warn" onclick="exportEPUB()">Exportar EPUB</button>
+    </div>
+    <div id="bookView" class="bookbox"></div>
+  </div>
+</section>
+
+<section id="diagnostico" class="sec">
+  <div class="card">
+    <h2>Diagnóstico automático</h2>
+    <p class="hint">Analiza la versión activa: usa el texto revisado si existe; si no, usa el original.</p>
+    <div class="row">
+      <button class="ok" onclick="runDiagnostics()">Actualizar diagnóstico</button>
+      <button class="blue" onclick="copyDiagnostics()">Copiar diagnóstico</button>
+    </div>
+    <div id="diagTables"></div>
+    <pre id="diagOutput"></pre>
+  </div>
+</section>
+
+<section id="exportar" class="sec">
+  <div class="card">
+    <h2>Exportar / importar</h2>
+    <div class="row">
+      <button class="ok" onclick="exportJSON()">Descargar JSON completo</button>
+      <label class="filelabel">Importar JSON<input type="file" accept=".json,application/json" onchange="importJSON(event)"></label>
+      <button class="blue" onclick="exportRevisedTXT()">Exportar revisada TXT</button>
+      <button class="blue" onclick="exportRevisedTXTPart(1)">TXT parte 1</button>
+      <button class="blue" onclick="exportRevisedTXTPart(2)">TXT parte 2</button>
+      <button class="light" onclick="exportOriginalTXT()">Exportar original TXT</button>
+      <button class="warn" onclick="exportReaderHTML()">Exportar HTML lectura</button>
+      <button class="warn" onclick="exportEPUB()">Exportar EPUB</button>
+    </div>
+    <p class="hint">El EPUB generado es un archivo real .epub sin dependencias externas. Si has cargado portada, se incrustará automáticamente.</p>
+  </div>
+
+  <div class="card danger">
+    <h2>Zona delicada</h2>
+    <p class="hint">Borra los datos guardados en este navegador. Exporta JSON antes.</p>
+    <button class="bad" onclick="resetAll()">Borrar todo</button>
+  </div>
+</section>
+
+</div>
+</main>
+</div>
+
+<script>
+const STORAGE_KEY = "puente_editorial_txt_prompt_revision_v4";
+
+let fileHandle = null;
+
+let state = {
+  title: "Los que no tenían voz",
+  author: "Miguel",
+  projectContext: "",
+  watchList: "",
+  fullText: "",
+  frontMatter: "",
+  coverImage: "",
+  coverImageMime: "",
+  chapters: [],
+  currentId: null,
+  lastSavedAt: null
+};
+
+function $(id){ return document.getElementById(id); }
+
+function loadLocal(){
+  const saved =
+    localStorage.getItem(STORAGE_KEY) ||
+    localStorage.getItem("puente_editorial_txt_prompt_revision_v3") ||
+    localStorage.getItem("puente_editorial_txt_prompt_revision_v2");
+
+  if(saved){
+    try{ state = {...state, ...JSON.parse(saved)}; }
+    catch(e){ console.warn("No se pudo leer localStorage", e); }
+  }
+
+  if(!state.projectContext) state.projectContext = $("projectContext").value;
+  if(!state.watchList) state.watchList = $("watchList").value;
+
+  $("projectTitle").value = state.title || "Los que no tenían voz";
+  $("projectAuthor").value = state.author || "Miguel";
+  $("projectContext").value = state.projectContext || "";
+  $("watchList").value = state.watchList || "";
+  $("fullText").value = state.fullText || "";
+
+  renderAll();
+  fillCurrent();
+  renderCoverPreview();
+  updateSaveStatus("Sin archivo JSON elegido. Se guardará en el navegador y podrás descargar JSON.");
+}
+
+function syncStateFromFields(){
+  state.title = $("projectTitle").value || "Los que no tenían voz";
+  state.author = $("projectAuthor").value || "Miguel";
+  state.projectContext = $("projectContext").value || "";
+  state.watchList = $("watchList").value || "";
+  state.fullText = $("fullText").value || "";
+  state.lastSavedAt = new Date().toISOString();
+}
+
+function saveLocalOnly(){
+  syncStateFromFields();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+}
+
+async function saveAll(options = {}){
+  syncStateFromFields();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+
+  const silent = options.silent === true;
+
+  if(fileHandle){
+    const ok = await saveToChosenFile();
+    if(ok){
+      updateSaveStatus("Guardado en localStorage y en el JSON elegido: " + new Date().toLocaleString("es-ES"));
+      if(!silent) alert("Guardado en navegador y en el JSON elegido.");
+      return;
+    }
+  }
+
+  updateSaveStatus("Guardado en localStorage: " + new Date().toLocaleString("es-ES"));
+  if(!silent) alert("Guardado en el navegador. Usa 'Descargar JSON' para copia externa.");
+}
+
+async function chooseSaveFile(){
+  if(!window.showSaveFilePicker){
+    alert("Tu navegador no permite elegir un archivo de guardado directo. Usaré descarga JSON manual.");
+    exportJSON();
+    return;
+  }
+
+  try{
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: "puente_editorial_novela.json",
+      types: [{description: "JSON", accept: {"application/json": [".json"]}}]
+    });
+    await saveToChosenFile();
+    updateSaveStatus("JSON elegido y guardado correctamente.");
+    alert("Archivo JSON elegido. A partir de ahora, Guardar intentará escribir ahí.");
+  }catch(e){
+    console.warn(e);
+    alert("No se eligió archivo JSON.");
+  }
+}
+
+async function saveToChosenFile(){
+  if(!fileHandle) return false;
+  try{
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(state, null, 2));
+    await writable.close();
+    return true;
+  }catch(e){
+    console.warn("No se pudo guardar en archivo elegido", e);
+    return false;
+  }
+}
+
+function updateSaveStatus(text){
+  const el = $("saveStatus");
+  if(el) el.textContent = text;
+}
+
+function tab(id){
+  document.querySelectorAll(".sec").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  $(id).classList.add("active");
+  $("tab-" + id).classList.add("active");
+  renderAll();
+}
+
+function importTXT(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    $("fullText").value = e.target.result;
+    state.fullText = e.target.result;
+    saveLocalOnly();
+    splitChapters();
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+async function pasteClipboard(){
+  try{
+    const text = await navigator.clipboard.readText();
+    $("fullText").value = text;
+    state.fullText = text;
+    saveLocalOnly();
+  }catch(e){
+    alert("No he podido leer el portapapeles. Pega el texto manualmente.");
+  }
+}
+
+function clearAllText(){
+  if(!confirm("¿Limpiar solo la ventana de texto completo? No borra capítulos ya divididos.")) return;
+  $("fullText").value = "";
+  state.fullText = "";
+  saveLocalOnly();
+}
+
+function splitChapters(){
+  const text = $("fullText").value || "";
+  if(!text.trim()){
+    alert("Primero carga o pega un TXT.");
+    return;
+  }
+
+  const re = /(^|\n)(Cap[ií]tulo\s+\d+(?:\.\s*[^\n]*)?)/gi;
+  const matches = [...text.matchAll(re)];
+
+  if(matches.length === 0){
+    alert("No he encontrado capítulos. Usa encabezados tipo: Capítulo 1. El silencio");
+    return;
+  }
+
+  state.frontMatter = text.slice(0, matches[0].index).trim();
+
+  const chapters = [];
+
+  for(let i = 0; i < matches.length; i++){
+    const headerStart = matches[i].index + (matches[i][1] || "").length;
+    const nextStart = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    const chunk = text.slice(headerStart, nextStart).trim();
+    const header = chunk.split(/\n/)[0].trim();
+
+    const hm = header.match(/Cap[ií]tulo\s+(\d+)(?:\.\s*(.*))?/i);
+    const num = hm ? Number(hm[1]) : i + 1;
+    const title = hm && hm[2] ? hm[2].trim() : "Sin título";
+
+    const existing = state.chapters.find(c => Number(c.number) === num);
+
+    chapters.push({
+      id: existing?.id || "ch_" + num,
+      number: num,
+      title: title || ("Capítulo " + num),
+      originalText: chunk,
+      revisedText: existing?.revisedText || "",
+      summary: existing?.summary || "",
+      analysis: existing?.analysis || "",
+      continuity: existing?.continuity || "",
+      status: existing?.status || "pendiente"
+    });
+  }
+
+  state.chapters = chapters.sort((a,b) => a.number - b.number);
+  state.currentId = state.chapters[0]?.id || null;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+  fillCurrent();
+  alert("Texto dividido en " + state.chapters.length + " capítulos.");
+}
+
+function current(){
+  if(!state.chapters || state.chapters.length === 0) return null;
+  let c = state.chapters.find(ch => ch.id === state.currentId);
+  if(!c){
+    c = sortedChapters()[0];
+    state.currentId = c.id;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  return c;
+}
+
+function selectChapter(id){
+  state.currentId = id;
+  fillCurrent();
+  renderAll();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function fillCurrent(){
+  const c = current();
+  if(!c){
+    $("chapterHeading").textContent = "Sin capítulo seleccionado";
+    $("currentRevisedView").value = "";
+    return;
+  }
+
+  $("chapterHeading").textContent = "Capítulo " + c.number + ". " + c.title;
+  $("cNumber").value = c.number;
+  $("cTitle").value = c.title;
+  $("cStatus").value = c.status || "pendiente";
+  $("cSummary").value = c.summary || "";
+  $("cOriginal").value = c.originalText || "";
+  $("currentRevisedView").value = c.revisedText || "";
+  renderRevisionSelect();
+  renderChapterDropdown();
+}
+
+function updateCurrent(){
+  const c = current();
+  if(!c) return;
+  c.number = Number($("cNumber").value) || c.number;
+  c.title = $("cTitle").value || c.title;
+  c.status = $("cStatus").value || "pendiente";
+  c.summary = $("cSummary").value || "";
+  c.originalText = $("cOriginal").value || "";
+  saveLocalOnly();
+}
+
+function goNext(){
+  const sorted = sortedChapters();
+  const idx = sorted.findIndex(c => c.id === state.currentId);
+  if(idx >= 0 && idx < sorted.length - 1) selectChapter(sorted[idx+1].id);
+}
+
+function sortedChapters(){
+  return [...(state.chapters || [])].sort((a,b)=>(Number(a.number)||0)-(Number(b.number)||0));
+}
+
+function activeText(c){
+  return c.revisedText && c.revisedText.trim() ? c.revisedText.trim() : (c.originalText || "").trim();
+}
+
+function renderAll(){
+  renderStats();
+  renderChapters();
+  renderRevisionSelect();
+  renderChapterDropdown();
+}
+
+function renderStats(){
+  const chapters = state.chapters || [];
+  const origWords = chapters.reduce((s,c)=>s+wc(c.originalText),0);
+  const activeWords = chapters.reduce((s,c)=>s+wc(activeText(c)),0);
+  const revisedCount = chapters.filter(c => (c.revisedText || "").trim()).length;
+  const analysisCount = chapters.filter(c => (c.analysis || "").trim()).length;
+  const ready = chapters.filter(c => c.status === "listo").length;
+
+  $("stats").innerHTML = `
+    <div class="stat"><b>${chapters.length}</b><span>capítulos</span></div>
+    <div class="stat"><b>${origWords.toLocaleString("es-ES")}</b><span>palabras original</span></div>
+    <div class="stat"><b>${activeWords.toLocaleString("es-ES")}</b><span>palabras versión activa</span></div>
+    <div class="stat"><b>${revisedCount}</b><span>con texto revisado</span></div>
+  `;
+
+  $("sideStats").innerHTML =
+    `<b>${chapters.length}</b> capítulos<br>
+    <span class="hint">${activeWords.toLocaleString("es-ES")} palabras activas · ${revisedCount} revisados · ${analysisCount} análisis · ${ready} listos</span>`;
+}
+
+function renderChapterDropdown(){
+  const el = $("chapterDropdown");
+  if(!el) return;
+  const html = sortedChapters().map(c => {
+    const tags = [c.revisedText ? "revisado" : "", c.analysis ? "análisis" : "", c.summary ? "ficha" : ""].filter(Boolean).join(", ");
+    return `<option value="${c.id}" ${c.id === state.currentId ? "selected" : ""}>${c.number}. ${esc(c.title)}${tags ? " — " + tags : ""}</option>`;
+  }).join("");
+  el.innerHTML = html || `<option>Sin capítulos</option>`;
+}
+
+function renderChapters(){
+  const q = ($("search").value || "").toLowerCase();
+  const list = sortedChapters().filter(c => !q || (c.number + " " + c.title).toLowerCase().includes(q));
+
+  $("chapterList").innerHTML = list.map(c => `
+    <div class="chapter ${c.id === state.currentId ? "active" : ""}" onclick="selectChapter('${c.id}');tab('capitulo')">
+      <div class="ct">${c.number}. ${esc(c.title)}</div>
+      <div class="cm">
+        ${wc(activeText(c)).toLocaleString("es-ES")} palabras activas · 
+        ${c.revisedText ? "con revisión" : "sin revisión"} ·
+        ${c.analysis ? "con análisis" : "sin análisis"}
+      </div>
+      <span class="badge ${c.status || "pendiente"}">${c.status || "pendiente"}</span>
+    </div>
+  `).join("");
+}
+
+function renderRevisionSelect(){
+  const el = $("revisionChapterSelect");
+  if(!el) return;
+  const html = sortedChapters().map(c => `<option value="${c.id}" ${c.id === state.currentId ? "selected" : ""}>${c.number}. ${esc(c.title)}</option>`).join("");
+  el.innerHTML = html;
+}
+
+function wc(text){
+  return ((text || "").trim().match(/\b[\wáéíóúüñÁÉÍÓÚÜÑ'-]+\b/g) || []).length;
+}
+
+function esc(s){
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
+}
+
+function stripHeading(text, c){
+  return String(text || "").replace(new RegExp("^\\s*Cap[ií]tulo\\s+" + c.number + "\\.\\s*[^\\n]*\\n*", "i"), "").trim();
+}
+
+/* PORTADA */
+
+function importCoverImage(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  if(!file.type.startsWith("image/")){
+    alert("El archivo elegido no es una imagen.");
+    return;
+  }
+
+  const allowed = ["image/jpeg","image/png","image/webp"];
+  if(!allowed.includes(file.type)){
+    alert("Formato no recomendado. Usa JPG, PNG o WEBP.");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    state.coverImage = e.target.result;
+    state.coverImageMime = file.type || "image/jpeg";
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    renderCoverPreview();
+    alert("Portada cargada correctamente.");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function clearCoverImage(){
+  if(!confirm("¿Quitar la portada guardada?")) return;
+
+  state.coverImage = "";
+  state.coverImageMime = "";
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderCoverPreview();
+}
+
+function renderCoverPreview(){
+  const box = $("coverPreviewBox");
+  if(!box) return;
+
+  if(!state.coverImage){
+    box.innerHTML = `<p class="hint">No hay portada cargada.</p>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      <img src="${state.coverImage}" class="coverPreviewImg">
+      <div class="hint">
+        <b>Portada cargada.</b><br>
+        Tipo: ${state.coverImageMime || "imagen"}<br>
+        Se incluirá automáticamente al exportar EPUB.<br><br>
+        Consejo: para mejor resultado, usa imagen vertical tipo portada.
+      </div>
+    </div>
+  `;
+}
+
+function dataURLToUint8Array(dataURL){
+  const parts = dataURL.split(",");
+  const base64 = parts[1] || "";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for(let i = 0; i < binary.length; i++){
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+function coverExtensionFromMime(mime){
+  if(mime === "image/png") return "png";
+  if(mime === "image/webp") return "webp";
+  return "jpg";
+}
+
+/* PROMPTS */
+
+function basePrompt(){
+  syncStateFromFields();
+  return `Actúa como editor literario profesional, corrector de estilo y editor de continuidad narrativa.
+
+CONTEXTO GENERAL DE LA NOVELA
+
+Título:
+${state.title || "Los que no tenían voz"}
+
+${state.projectContext || ""}
+
+REPETICIONES A VIGILAR
+
+${state.watchList || ""}
+
+Criterio editorial:
+- No destruyas la voz de la novela.
+- No cambies el fondo emocional.
+- No conviertas la crítica social en discurso.
+- Respeta la diferencia entre Naim y Karim.
+- Vigila exceso de introspección, símbolos repetidos y frases sentenciosas.
+- La prioridad es podar, limpiar, afilar y conservar lo que duele.`;
+}
+
+function cleanShortAnalysis(text, max=900){
+  let t = String(text || "").trim();
+  if(!t) return "[sin análisis]";
+  t = t.replace(/⸻/g, "").replace(/-{5,}/g, "").replace(/\n{3,}/g, "\n\n");
+  const idx = t.search(/##?\s*2\.|2\.\s*Función narrativa/i);
+  if(idx > 250) t = t.slice(0, idx).trim();
+  if(t.length > max){
+    t = t.slice(0, max);
+    const lastDot = Math.max(t.lastIndexOf("."), t.lastIndexOf("\n"));
+    if(lastDot > 300) t = t.slice(0, lastDot + 1);
+    t += "\n[análisis resumido]";
+  }
+  return t;
+}
+
+function previousContinuity(untilNumber){
+  const prev = sortedChapters().filter(c => Number(c.number) < Number(untilNumber));
+  const last = prev.slice(-5);
+
+  return last.map(c => `Capítulo ${c.number}. ${c.title}
+
+Resumen/ficha:
+${c.summary || "[sin ficha]"}
+
+Nota editorial guardada:
+${c.analysis ? cleanShortAnalysis(c.analysis, 750) : "[sin análisis]"}`).join("\n\n----------------------------------------\n\n");
+}
+
+function getChapterRange(from,to){
+  return sortedChapters().filter(c => Number(c.number) >= Number(from) && Number(c.number) <= Number(to));
+}
+
+function generatePrompt(){
+  saveLocalOnly();
+
+  const output = $("promptOutput");
+  const mode = $("promptMode").value;
+
+  if(!state.chapters || state.chapters.length === 0){
+    output.textContent = "";
+    alert("No hay capítulos cargados. Primero carga el TXT y pulsa 'Dividir por capítulos'.");
+    return;
+  }
+
+  if(!state.currentId){
+    const first = sortedChapters()[0];
+    if(first){
+      state.currentId = first.id;
+      fillCurrent();
+    }
+  }
+
+  if(mode === "analisis") return generateChapterPrompt();
+  if(mode === "poda") return generatePodaPrompt();
+  if(mode === "bloque") return generateBlockPrompt();
+  if(mode === "global") return generateGlobalPrompt();
+
+  alert("No se ha reconocido el tipo de prompt.");
+}
+
+function generateChapterPrompt(){
+  saveLocalOnly();
+  const c = current();
+  if(!c){
+    $("promptOutput").textContent = "";
+    alert("No hay capítulo seleccionado. Primero carga el TXT y pulsa 'Dividir por capítulos'.");
+    return;
+  }
+
+  const extra = $("extraInstruction").value || "";
+
+  const prompt = `${basePrompt()}
+
+ANÁLISIS EDITORIAL GUARDADO DEL CAPÍTULO ACTUAL
+
+${c.analysis || "[No hay análisis editorial guardado para este capítulo.]"}
+
+FICHA / RESUMEN GUARDADO DEL CAPÍTULO ACTUAL
+
+${c.summary || "[No hay ficha guardada para este capítulo.]"}
+
+OBJETIVO
+
+Analiza editorialmente este capítulo dentro de la novela completa. No lo reescribas todavía salvo que propongas intervenciones concretas.
+
+Ten en cuenta la continuidad anterior reciente:
+
+${previousContinuity(c.number) || "[No hay continuidad anterior guardada.]"}
+
+CAPÍTULO A REVISAR
+
+${activeText(c)}
+
+RESPONDE CON ESTA ESTRUCTURA:
+
+## 1. Veredicto rápido
+Di si está listo, casi listo, necesita poda, necesita reestructuración o necesita reescritura parcial.
+
+## 2. Función narrativa del capítulo
+Explica para qué sirve realmente dentro de la novela.
+
+## 3. Qué aporta nuevo
+Indica qué añade que no estuviera ya.
+
+## 4. Qué repite de capítulos anteriores
+Señala símbolos, dinámicas, emociones o escenas que se repiten.
+
+## 5. Repeticiones internas
+Lista palabras, frases, imágenes y estructuras repetidas.
+
+## 6. Riesgo de cansancio del lector
+Valora si el lector puede sentir que esto ya lo ha leído antes.
+
+## 7. Ritmo y poda
+Indica porcentaje de poda recomendado y zonas a recortar.
+
+## 8. Personajes
+Valora coherencia de Naim, Karim y secundarios.
+
+## 9. Estilo
+Señala frases potentes y frases demasiado explicativas.
+
+## 10. Continuidad hacia el siguiente capítulo
+Qué deja preparado y qué no conviene repetir.
+
+## 11. Decisión editorial
+Elige: mantener casi igual / poda ligera / poda moderada / reestructurar / reescribir parcialmente.
+
+## 12. Intervención recomendada
+Explica qué tocarías sin reescribir entero.
+
+## 13. Ficha de continuidad para pegar en la herramienta
+Devuelve una ficha breve y clara.
+
+INSTRUCCIÓN ADICIONAL DEL USUARIO:
+${extra || "[ninguna]"}`;
+
+  $("promptOutput").textContent = prompt;
+}
+
+function generatePodaPrompt(){
+  saveLocalOnly();
+  const c = current();
+  if(!c){
+    $("promptOutput").textContent = "";
+    alert("No hay capítulo seleccionado. Primero carga el TXT y pulsa 'Dividir por capítulos'.");
+    return;
+  }
+
+  const extra = $("extraInstruction").value || "";
+
+  const prompt = `${basePrompt()}
+
+ANÁLISIS EDITORIAL GUARDADO DEL CAPÍTULO ACTUAL
+
+${c.analysis || "[No hay análisis editorial guardado para este capítulo. Si lo tienes, guárdalo antes como Análisis editorial.]"}
+
+FICHA / RESUMEN GUARDADO DEL CAPÍTULO ACTUAL
+
+${c.summary || "[No hay ficha guardada para este capítulo.]"}
+
+CONTINUIDAD ANTERIOR RECIENTE
+
+${previousContinuity(c.number) || "[No hay continuidad anterior guardada.]"}
+
+TAREA
+
+Reescribe el siguiente capítulo aplicando una poda editorial real, pero sin destruir el fondo, la emoción ni la continuidad.
+
+Tipo de intervención:
+- Poda moderada por defecto.
+- Usa el análisis editorial guardado del capítulo actual como guía principal.
+- Reduce repeticiones.
+- Elimina explicaciones después de escenas que ya se entienden.
+- Conserva las mejores imágenes.
+- Mantén la voz íntima, dura pero no derrotista.
+- Mantén la personalidad de Naim y Karim.
+- No añadas escenas nuevas salvo que sea imprescindible para unir cortes.
+- No cambies el sentido del capítulo.
+- Devuelve el capítulo completo ya limpio y listo para pegar en la herramienta como nueva redacción.
+
+Antes del texto final, incluye solo:
+PORCENTAJE ESTIMADO DE PODA:
+PRINCIPALES CAMBIOS:
+
+Después entrega:
+
+CAPÍTULO ${c.number}. ${c.title}
+
+${stripHeading(activeText(c), c)}
+
+INSTRUCCIÓN ADICIONAL DEL USUARIO:
+${extra || "[ninguna]"}`;
+
+  $("promptOutput").textContent = prompt;
+}
+
+function generateBlockPrompt(){
+  saveLocalOnly();
+
+  const from = Number($("fromChapter").value) || 1;
+  const to = Number($("toChapter").value) || from;
+  const chapters = getChapterRange(from,to);
+  if(!chapters.length){ alert("No hay capítulos en ese rango."); return; }
+
+  const extra = $("extraInstruction").value || "";
+  const blockText = chapters.map(c => activeText(c)).join("\n\n----------------------------------------\n\n");
+
+  const prompt = `${basePrompt()}
+
+TAREA
+
+Analiza editorialmente este bloque de capítulos como parte de la novela completa.
+
+Quiero que detectes:
+- coherencia del bloque;
+- función de cada capítulo;
+- repeticiones entre capítulos;
+- escenas que se pisan;
+- ritmo;
+- exceso de introspección;
+- símbolos gastados;
+- evolución de Naim y Karim;
+- uso de secundarios;
+- poda recomendada por capítulo;
+- qué no conviene repetir en el bloque siguiente.
+
+No reescribas los capítulos todavía. Dame diagnóstico editorial de bloque.
+
+CONTINUIDAD ANTERIOR RECIENTE:
+${previousContinuity(from) || "[No hay continuidad anterior guardada.]"}
+
+BLOQUE A REVISAR: CAPÍTULOS ${from}-${to}
+
+${blockText}
+
+RESPONDE CON ESTA ESTRUCTURA:
+
+## 1. Veredicto del bloque
+## 2. Función de cada capítulo
+## 3. Progresión emocional y narrativa
+## 4. Repeticiones entre capítulos
+## 5. Capítulos que se pisan o cumplen funciones parecidas
+## 6. Ritmo y zonas lentas
+## 7. Poda recomendada por capítulo
+## 8. Personajes y secundarios
+## 9. Símbolos que funcionan
+## 10. Símbolos o frases que empiezan a gastarse
+## 11. Riesgo para el siguiente bloque
+## 12. Decisión editorial del bloque
+## 13. Ficha de continuidad del bloque para pegar en la herramienta
+
+INSTRUCCIÓN ADICIONAL DEL USUARIO:
+${extra || "[ninguna]"}`;
+
+  $("promptOutput").textContent = prompt;
+}
+
+function generateGlobalPrompt(){
+  saveLocalOnly();
+  const chapters = sortedChapters();
+  if(!chapters.length){ alert("No hay capítulos cargados."); return; }
+
+  const extra = $("extraInstruction").value || "";
+
+  const summaries = chapters.map(c => `Capítulo ${c.number}. ${c.title}
+Palabras activas: ${wc(activeText(c))}
+Estado: ${c.status}
+Tiene texto revisado: ${c.revisedText ? "sí" : "no"}
+Resumen/ficha: ${c.summary || "[sin ficha]"}
+Nota editorial: ${c.analysis ? cleanShortAnalysis(c.analysis, 600) : "[sin análisis]"}`).join("\n\n");
+
+  const prompt = `${basePrompt()}
+
+TAREA GLOBAL
+
+Haz un informe editorial global de la novela completa usando el índice, los resúmenes/fichas y los análisis guardados abajo.
+
+Quiero una valoración como editor:
+- si la novela está para imprimir una copia de prueba;
+- si está para publicar;
+- estructura;
+- ritmo completo;
+- repeticiones globales;
+- capítulos largos;
+- capítulos que se pisan;
+- evolución de Naim y Karim;
+- desarrollo de la música/trap melódico;
+- uso de Dani y secundarios;
+- originalidad;
+- puntos fuertes;
+- puntos débiles;
+- plan de poda final.
+
+DATOS DE CAPÍTULOS:
+
+${summaries}
+
+RESPONDE CON INFORME EDITORIAL COMPLETO Y PLAN DE TRABAJO.
+
+INSTRUCCIÓN ADICIONAL DEL USUARIO:
+${extra || "[ninguna]"}`;
+
+  $("promptOutput").textContent = prompt;
+}
+
+function clearExtraInstruction(){
+  $("extraInstruction").value = "";
+}
+
+function copyPrompt(){
+  let text = $("promptOutput").textContent || "";
+  if(!text.trim()){
+    generatePrompt();
+    text = $("promptOutput").textContent || "";
+  }
+  if(!text.trim()) return;
+  navigator.clipboard.writeText(text);
+  alert("Prompt copiado.");
+}
+
+function downloadPrompt(){
+  let text = $("promptOutput").textContent || "";
+  if(!text.trim()){
+    generatePrompt();
+    text = $("promptOutput").textContent || "";
+  }
+  if(!text.trim()) return;
+  download("prompt_editorial.txt", text);
+}
+
+/* REVISIÓN */
+
+async function saveRevision(){
+  const c = current();
+  if(!c){ alert("Selecciona capítulo."); return; }
+
+  const type = $("revisionType").value;
+  const text = $("revisionInput").value || "";
+  const status = $("revisionStatus").value;
+
+  if(!text.trim()){
+    alert("No hay texto para guardar.");
+    return;
+  }
+
+  if(type === "revisedText"){
+    c.revisedText = cleanChapterText(text, c);
+  }else if(type === "analysis"){
+    c.analysis = text.trim();
+  }else if(type === "continuity"){
+    c.summary = cleanContinuityText(text);
+    c.continuity = text.trim();
+  }
+
+  c.status = status;
+  await saveAll({silent:true});
+
+  fillCurrent();
+
+  if(type === "revisedText") $("currentRevisedView").value = c.revisedText || "";
+  else if(type === "analysis") $("currentRevisedView").value = c.analysis || "";
+  else $("currentRevisedView").value = c.summary || "";
+
+  alert("Guardado en el capítulo " + c.number + ". El análisis/ficha ya se usará en próximos prompts.");
+}
+
+function cleanChapterText(text, c){
+  let t = String(text || "").trim();
+
+  const re = new RegExp("cap[ií]tulo\\s+" + c.number + "\\.\\s+[^\\n]*", "i");
+  const match = t.match(re);
+
+  if(match && match.index > 0){
+    t = t.slice(match.index).trim();
+  }
+
+  return t;
+}
+
+function cleanContinuityText(text){
+  let t = String(text || "").trim();
+  const idx = t.search(/Cap[ií]tulo\s+\d+\./i);
+  if(idx > 0) t = t.slice(idx).trim();
+  return t;
+}
+
+function loadCurrentRevised(){
+  const c = current();
+  $("currentRevisedView").value = c?.revisedText || "";
+}
+
+function loadCurrentAnalysis(){
+  const c = current();
+  $("currentRevisedView").value = c?.analysis || "";
+}
+
+function clearRevisionBox(){
+  if(!confirm("¿Vaciar solo la ventana de pegado? No se borrará nada guardado.")) return;
+  $("revisionInput").value = "";
+}
+
+/* NOVELA */
+
+function buildNovel(useRevised=true){
+  const parts = [];
+  if(state.frontMatter && state.frontMatter.trim()) parts.push(state.frontMatter.trim());
+
+  sortedChapters().forEach(c => {
+    const text = useRevised ? activeText(c) : (c.originalText || "").trim();
+    if(text) parts.push(text);
+  });
+
+  return parts.join("\n\n");
+}
+
+function copyRevisedNovel(){
+  navigator.clipboard.writeText(buildNovel(true));
+  alert("Novela revisada copiada.");
+}
+
+function renderBookView(){
+  $("bookView").textContent = buildNovel(true);
+}
+
+/* DIAGNÓSTICO */
+
+function runDiagnostics(){
+  const chapters = sortedChapters();
+  const terms = (state.watchList || $("watchList").value || "").split(",").map(x=>x.trim()).filter(Boolean);
+  const all = chapters.map(c => activeText(c)).join("\n\n");
+  const totalWords = wc(all);
+
+  const termRows = terms.map(t => ({term:t, count:countTerm(all,t)})).sort((a,b)=>b.count-a.count);
+
+  const chapterRows = chapters.map(c => {
+    const txt = activeText(c);
+    return {
+      n:c.number,
+      title:c.title,
+      words:wc(c.originalText),
+      activeWords:wc(txt),
+      revisedWords:wc(c.revisedText),
+      analysis:c.analysis ? "sí" : "no",
+      revised:c.revisedText ? "sí" : "no",
+      como:countTerm(txt,"como si"),
+      noera:countTerm(txt,"no era"),
+      voz:countTerm(txt,"voz"),
+      cuaderno:countTerm(txt,"cuaderno"),
+      dani:countTerm(txt,"Dani"),
+      pan:countTerm(txt,"pan"),
+      mesa:countTerm(txt,"mesa")
+    };
+  });
+
+  let html = `<h3>Repeticiones globales en versión activa</h3><table><tr><th>Término</th><th>Apariciones</th></tr>`;
+  termRows.forEach(r => html += `<tr><td>${esc(r.term)}</td><td>${r.count}</td></tr>`);
+  html += `</table>`;
+
+  html += `<h3>Capítulos</h3><table><tr>
+  <th>Cap.</th><th>Título</th><th>Palabras activas</th><th>Palabras original</th><th>Palabras revisado</th><th>Análisis</th><th>Revisado</th>
+  <th>como si</th><th>no era</th><th>voz</th><th>cuaderno</th><th>Dani</th><th>pan</th><th>mesa</th>
+  </tr>`;
+
+  chapterRows.forEach(r => html += `<tr>
+    <td>${r.n}</td><td>${esc(r.title)}</td><td>${r.activeWords.toLocaleString("es-ES")}</td><td>${r.words.toLocaleString("es-ES")}</td><td>${r.revisedWords ? r.revisedWords.toLocaleString("es-ES") : "-"}</td>
+    <td>${r.analysis}</td><td>${r.revised}</td>
+    <td>${r.como}</td><td>${r.noera}</td><td>${r.voz}</td><td>${r.cuaderno}</td><td>${r.dani}</td><td>${r.pan}</td><td>${r.mesa}</td>
+  </tr>`);
+
+  html += `</table>`;
+  $("diagTables").innerHTML = html;
+
+  const long = chapterRows.filter(r => r.activeWords > 5500).map(r => `- Capítulo ${r.n}. ${r.title}: ${r.activeWords} palabras`).join("\n");
+
+  $("diagOutput").textContent =
+`DIAGNÓSTICO AUTOMÁTICO
+
+Capítulos cargados: ${chapters.length}
+Palabras aproximadas de la versión activa: ${totalWords.toLocaleString("es-ES")}
+
+Capítulos largos:
+${long || "Ninguno por encima de 5.500 palabras."}
+
+Repeticiones más altas:
+${termRows.slice(0,15).map(r => "- " + r.term + ": " + r.count).join("\n")}
+
+Uso:
+Este diagnóstico analiza el texto revisado si existe; si no, analiza el original.`;
+}
+
+function countTerm(text, term){
+  if(!term) return 0;
+  const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return ((text || "").match(new RegExp(safe, "gi")) || []).length;
+}
+
+function copyDiagnostics(){
+  const text = $("diagOutput").textContent || "";
+  navigator.clipboard.writeText(text);
+  alert("Diagnóstico copiado.");
+}
+
+/* EXPORTAR / IMPORTAR */
+
+function exportJSON(silent=false){
+  saveLocalOnly();
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  download("puente_editorial_novela_" + stamp + ".json", JSON.stringify(state,null,2), "application/json");
+  if(!silent) alert("JSON descargado.");
+}
+
+function importJSON(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    try{
+      state = {...state, ...JSON.parse(e.target.result)};
+      if(!state.chapters) state.chapters = [];
+      if(!state.currentId && state.chapters[0]) state.currentId = state.chapters[0].id;
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+      $("projectTitle").value = state.title || "Los que no tenían voz";
+      $("projectAuthor").value = state.author || "Miguel";
+      $("projectContext").value = state.projectContext || "";
+      $("watchList").value = state.watchList || "";
+      $("fullText").value = state.fullText || "";
+
+      renderAll();
+      fillCurrent();
+      renderCoverPreview();
+      alert("JSON importado.");
+    }catch(err){
+      alert("JSON no válido.");
+    }
+  };
+
+  reader.readAsText(file, "UTF-8");
+}
+
+function exportRevisedTXT(){
+  download("novela_revisada_los_que_no_tenian_voz.txt", buildNovel(true));
+}
+
+function exportOriginalTXT(){
+  download("novela_original_los_que_no_tenian_voz.txt", buildNovel(false));
+}
+
+function exportRevisedTXTPart(part){
+  const chapters = sortedChapters();
+  if(!chapters.length){
+    alert("No hay capítulos cargados.");
+    return;
+  }
+  const mid = Math.ceil(chapters.length / 2);
+  const selected = part === 1 ? chapters.slice(0, mid) : chapters.slice(mid);
+
+  const parts = [];
+  if(part === 1 && state.frontMatter && state.frontMatter.trim()) parts.push(state.frontMatter.trim());
+
+  selected.forEach(c => {
+    const text = activeText(c);
+    if(text) parts.push(text);
+  });
+
+  download("novela_revisada_parte_" + part + ".txt", parts.join("\n\n"));
+}
+
+function exportReaderHTML(){
+  const novel = buildNovel(true);
+  const safe = esc(novel);
+  const title = esc(state.title || "Novela revisada");
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<style>
+body{margin:0;background:#efe7da;color:#2a2119;font-family:Georgia,serif;line-height:1.75}
+main{max-width:820px;margin:0 auto;background:#fffdf8;min-height:100vh;padding:48px 58px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+h1{font-family:system-ui,sans-serif}
+pre{white-space:pre-wrap;font:inherit}
+</style>
+</head>
+<body>
+<main>
+<h1>${title}</h1>
+<pre>${safe}</pre>
+</main>
+</body>
+</html>`;
+
+  download("novela_revisada_lectura.html", html, "text/html");
+}
+
+function download(name, text, type="text/plain"){
+  const blob = new Blob([text], {type:type + ";charset=utf-8"});
+  downloadBlob(name, blob);
+}
+
+function downloadBlob(name, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();}, 100);
+}
+
+function resetAll(){
+  if(!confirm("¿Borrar todo lo guardado en este navegador? Exporta JSON antes.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+/* EPUB SIN LIBRERÍAS EXTERNAS Y CON PORTADA */
+
+function exportEPUB(){
+  saveLocalOnly();
+
+  const chapters = sortedChapters();
+  if(!chapters.length){
+    alert("No hay capítulos cargados.");
+    return;
+  }
+
+  const title = state.title || "Novela revisada";
+  const author = state.author || "Autor";
+  const uuid = "urn:uuid:" + makeUUID();
+
+  const hasCoverImage = state.coverImage && state.coverImage.startsWith("data:image/");
+  const coverExt = hasCoverImage ? coverExtensionFromMime(state.coverImageMime) : "";
+  const coverFileName = hasCoverImage ? "cover." + coverExt : "";
+  const coverMediaType = hasCoverImage ? state.coverImageMime : "";
+
+  const files = [];
+
+  files.push({
+    name:"mimetype",
+    data:"application/epub+zip"
+  });
+
+  files.push({
+    name:"META-INF/container.xml",
+    data:`<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+  });
+
+  files.push({
+    name:"OEBPS/styles.css",
+    data:`body{font-family:serif;line-height:1.65;margin:1.2em;color:#1f1a14;}
+h1,h2{text-align:center;line-height:1.25;}
+h1{margin-top:35%;}
+h2{margin-top:2em;}
+p{text-indent:1.2em;margin:0 0 .35em 0;}
+.front{text-indent:0;text-align:center;margin-top:2em;}
+.cover-page{margin:0;padding:0;text-align:center;}
+.cover-img{max-width:100%;max-height:100vh;display:block;margin:0 auto;}
+hr{border:0;border-top:1px solid #bbb;margin:2em 0;}`
+  });
+
+  if(hasCoverImage){
+    files.push({
+      name: "OEBPS/" + coverFileName,
+      data: dataURLToUint8Array(state.coverImage)
+    });
+  }
+
+  const navItems = [];
+  const manifestItems = [
+    `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>`,
+    `<item id="css" href="styles.css" media-type="text/css"/>`
+  ];
+  const spineItems = [];
+
+  const coverXhtml = hasCoverImage
+    ? `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es">
+<head>
+<title>${xmlEsc(title)}</title>
+<link rel="stylesheet" type="text/css" href="styles.css"/>
+</head>
+<body class="cover-page">
+<section>
+<img class="cover-img" src="${coverFileName}" alt="Portada"/>
+</section>
+</body>
+</html>`
+    : `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es">
+<head><title>${xmlEsc(title)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body>
+<section>
+<h1>${xmlEsc(title)}</h1>
+<p class="front">${xmlEsc(author)}</p>
+</section>
+</body>
+</html>`;
+
+  files.push({name:"OEBPS/cover.xhtml", data:coverXhtml});
+  manifestItems.push(`<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`);
+
+  if(hasCoverImage){
+    manifestItems.push(`<item id="cover-image" href="${coverFileName}" media-type="${coverMediaType}" properties="cover-image"/>`);
+  }
+
+  spineItems.push(`<itemref idref="cover"/>`);
+  navItems.push(`<li><a href="cover.xhtml">Portada</a></li>`);
+
+  chapters.forEach((c) => {
+    const id = "chap" + c.number;
+    const file = `chapter-${String(c.number).padStart(2,"0")}.xhtml`;
+    const body = chapterToXHTML(activeText(c), c);
+    const xhtml = `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es">
+<head><title>Capítulo ${c.number}. ${xmlEsc(c.title)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body>
+<section>
+<h2>Capítulo ${c.number}. ${xmlEsc(c.title)}</h2>
+${body}
+</section>
+</body>
+</html>`;
+
+    files.push({name:"OEBPS/" + file, data:xhtml});
+    manifestItems.push(`<item id="${id}" href="${file}" media-type="application/xhtml+xml"/>`);
+    spineItems.push(`<itemref idref="${id}"/>`);
+    navItems.push(`<li><a href="${file}">Capítulo ${c.number}. ${xmlEsc(c.title)}</a></li>`);
+  });
+
+  const navXhtml = `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="es" lang="es">
+<head><title>Índice</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body>
+<nav epub:type="toc" id="toc">
+<h1>Índice</h1>
+<ol>
+${navItems.join("\n")}
+</ol>
+</nav>
+</body>
+</html>`;
+
+  files.push({name:"OEBPS/nav.xhtml", data:navXhtml});
+
+  const opf = `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="BookId" xml:lang="es">
+<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+<dc:identifier id="BookId">${xmlEsc(uuid)}</dc:identifier>
+<dc:title>${xmlEsc(title)}</dc:title>
+<dc:creator>${xmlEsc(author)}</dc:creator>
+<dc:language>es</dc:language>
+${hasCoverImage ? `<meta name="cover" content="cover-image"/>` : ""}
+<meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d{3}Z$/,"Z")}</meta>
+</metadata>
+<manifest>
+${manifestItems.join("\n")}
+</manifest>
+<spine>
+${spineItems.join("\n")}
+</spine>
+</package>`;
+
+  files.push({name:"OEBPS/content.opf", data:opf});
+
+  const blob = makeZipBlob(files);
+  const safeName = slugify(title || "novela-revisada") + ".epub";
+  downloadBlob(safeName, blob);
+}
+
+function chapterToXHTML(text, c){
+  let t = stripHeading(text, c);
+  const paragraphs = t.split(/\n\s*\n/g).map(p => p.trim()).filter(Boolean);
+  if(!paragraphs.length) return "<p></p>";
+
+  return paragraphs.map(p => {
+    const lines = p.split(/\n/g).map(x => x.trim()).filter(Boolean);
+    if(lines.length > 1 && lines.every(x => x.length < 90)){
+      return "<p>" + lines.map(xmlEsc).join("<br/>") + "</p>";
+    }
+    return "<p>" + xmlEsc(p).replace(/\n/g, "<br/>") + "</p>";
+  }).join("\n");
+}
+
+function xmlEsc(s){
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&apos;");
+}
+
+function slugify(s){
+  return String(s || "libro")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-+|-+$/g,"") || "libro";
+}
+
+function makeUUID(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c === "x" ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+
+/* ZIP STORE METHOD */
+
+function makeZipBlob(files){
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+
+  files.forEach((f) => {
+    const nameBytes = encoder.encode(f.name);
+    const dataBytes = typeof f.data === "string" ? encoder.encode(f.data) : f.data;
+    const crc = crc32(dataBytes);
+    const mod = dosDateTime(new Date());
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, mod.time, true);
+    lv.setUint16(12, mod.date, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, dataBytes.length, true);
+    lv.setUint32(22, dataBytes.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+
+    chunks.push(local, dataBytes);
+
+    const cent = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(cent.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, mod.time, true);
+    cv.setUint16(14, mod.date, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, dataBytes.length, true);
+    cv.setUint32(24, dataBytes.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    cent.set(nameBytes, 46);
+    central.push(cent);
+
+    offset += local.length + dataBytes.length;
+  });
+
+  const centralOffset = offset;
+  let centralSize = 0;
+  central.forEach(c => {
+    chunks.push(c);
+    centralSize += c.length;
+    offset += c.length;
+  });
+
+  const end = new Uint8Array(22);
+  const ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, centralOffset, true);
+  ev.setUint16(20, 0, true);
+  chunks.push(end);
+
+  return new Blob(chunks, {type:"application/epub+zip"});
+}
+
+function dosDateTime(date){
+  let year = date.getFullYear();
+  if(year < 1980) year = 1980;
+  return {
+    time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds()/2),
+    date: ((year - 1980) << 9) | ((date.getMonth()+1) << 5) | date.getDate()
+  };
+}
+
+let crcTable = null;
+
+function makeCRCTable(){
+  let c;
+  const table = [];
+  for(let n = 0; n < 256; n++){
+    c = n;
+    for(let k = 0; k < 8; k++){
+      c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+    }
+    table[n] = c >>> 0;
+  }
+  return table;
+}
+
+function crc32(bytes){
+  if(!crcTable) crcTable = makeCRCTable();
+  let crc = 0 ^ (-1);
+  for(let i=0; i<bytes.length; i++){
+    crc = (crc >>> 8) ^ crcTable[(crc ^ bytes[i]) & 0xFF];
+  }
+  return (crc ^ (-1)) >>> 0;
+}
+
+window.addEventListener("beforeunload", () => {
+  saveLocalOnly();
+});
+
+loadLocal();
+</script>
+</body>
+</html>
