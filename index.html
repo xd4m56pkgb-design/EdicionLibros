@@ -520,6 +520,7 @@ La crítica social debe entrar en escenas, no en discursos. La xenofobia no debe
       <button class="blue" onclick="exportRevisedTXTPart(2)">TXT parte 2</button>
       <button class="light" onclick="exportOriginalTXT()">Exportar original TXT</button>
       <button class="warn" onclick="exportReaderHTML()">Exportar HTML lectura</button>
+      <button class="ok" onclick="exportPrintHTML()">Exportar HTML para PDF impresión</button>
       <button class="warn" onclick="exportEPUB()">Exportar EPUB</button>
     </div>
   </div>
@@ -1798,6 +1799,208 @@ function resetAll(){
   localStorage.removeItem("puente_editorial_txt_prompt_revision_v2");
 
   location.reload();
+}
+
+  /* HTML PARA PDF IMPRESIÓN */
+
+function exportPrintHTML(){
+  saveLocalOnly();
+
+  const title = esc(state.title || "Novela revisada");
+  const author = esc(state.author || "Autor");
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>${title} — PDF impresión</title>
+<style>
+@page{
+  size: 5.5in 8.5in;
+  margin-top: 1.8cm;
+  margin-bottom: 1.8cm;
+  margin-left: 2cm;
+  margin-right: 1.6cm;
+}
+
+@page:left{
+  margin-left: 1.6cm;
+  margin-right: 2cm;
+}
+
+@page:right{
+  margin-left: 2cm;
+  margin-right: 1.6cm;
+}
+
+body{
+  margin:0;
+  padding:0;
+  background:white;
+  color:#111;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 11.5pt;
+  line-height: 1.45;
+  text-align: justify;
+  hyphens: none;
+}
+
+main{
+  width:100%;
+}
+
+.titlepage{
+  page-break-after:always;
+  text-align:center;
+}
+
+h1{
+  font-size:22pt;
+  text-align:center;
+  margin-top:35%;
+  margin-bottom:1em;
+  page-break-after:avoid;
+}
+
+.author{
+  text-align:center;
+  text-indent:0;
+  font-size:13pt;
+}
+
+h2{
+  font-size:16pt;
+  text-align:center;
+  margin-top:2.5cm;
+  margin-bottom:1.2cm;
+  page-break-before:always;
+  page-break-after:avoid;
+}
+
+p{
+  margin:0 0 0.55em 0;
+  text-indent:1.1em;
+  orphans:2;
+  widows:2;
+}
+
+p.noindent{
+  text-indent:0;
+}
+
+p.dialogue{
+  text-indent:0;
+  margin-bottom:0.45em;
+}
+
+p.poem{
+  text-indent:0;
+  margin-left:1.2em;
+  text-align:left;
+}
+
+@media screen{
+  body{
+    background:#e6d8c8;
+  }
+
+  main{
+    width:5.5in;
+    min-height:8.5in;
+    margin:30px auto;
+    background:white;
+    padding:1.8cm 1.6cm 1.8cm 2cm;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);
+  }
+}
+</style>
+</head>
+<body>
+<main>
+
+<div class="titlepage">
+  <h1>${title}</h1>
+  <p class="author">${author}</p>
+</div>
+
+${novelToPrintHTML(buildNovel(true))}
+
+</main>
+</body>
+</html>`;
+
+  download("libro_para_pdf_impresion.html", html, "text/html");
+}
+
+function novelToPrintHTML(text){
+  const blocks = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split(/\n\s*\n/g)
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  return blocks.map(block => {
+    const firstLine = block.split("\n")[0].trim();
+
+    if(/^DEDICATORIA$/i.test(firstLine) ||
+       /^PRÓLOGO$/i.test(firstLine) ||
+       /^PROLOGO$/i.test(firstLine) ||
+       /^NOTA DE AUTOR$/i.test(firstLine) ||
+       /^NOTA SOBRE EL USO DE IA$/i.test(firstLine) ||
+       /^AGRADECIMIENTOS$/i.test(firstLine)){
+      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+      const sectionTitle = xmlEsc(lines.shift() || "");
+      const body = lines.join("\n\n");
+
+      return `<h2>${sectionTitle}</h2>\n${textBlockToPrintParagraphs(body)}`;
+    }
+
+    const cap = firstLine.match(/^Cap[ií]tulo\s+\d+\.\s*(.*)$/i);
+
+    if(cap){
+      const lines = block.split("\n");
+      const heading = xmlEsc(lines.shift().trim());
+      const body = lines.join("\n").trim();
+
+      return `<h2>${heading}</h2>\n${textBlockToPrintParagraphs(body)}`;
+    }
+
+    return textBlockToPrintParagraphs(block);
+  }).join("\n\n");
+}
+
+function textBlockToPrintParagraphs(text){
+  const paras = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split(/\n\s*\n/g)
+    .map(p => p.trim())
+    .filter(Boolean);
+
+  return paras.map(p => {
+    const lines = p
+      .split(/\n+/g)
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    if(!lines.length) return "";
+
+    const isDialogue = lines[0].startsWith("—");
+    const isPoem = lines.length > 1 && lines.every(line => line.length < 90);
+
+    const html = lines.map(line => xmlEsc(line)).join("<br>");
+
+    if(isDialogue){
+      return `<p class="dialogue">${html}</p>`;
+    }
+
+    if(isPoem){
+      return `<p class="poem">${html}</p>`;
+    }
+
+    return `<p>${html}</p>`;
+  }).join("\n");
 }
 
 /* EPUB */
